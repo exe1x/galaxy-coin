@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
+import * as d3 from 'd3';
 
 // Static array of holders provided by the user
 const staticHolders = [
@@ -888,88 +888,115 @@ const staticHolders = [
     }
 ];
 
-const GalaxyCanvas = () => {
-    const canvasRef = useRef(null);
+const GalaxyD3 = () => {
+    const svgRef = useRef();
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredHolders, setFilteredHolders] = useState(staticHolders);
   
-    // Function to generate truly random positions for each holder within a certain radius
-    const generateRandomPositions = (holders, width, height) => {
-      const radius = Math.min(width, height) / 2 - 20; // Max radius for placing stars
-      return holders.map((holder, index) => {
-        const distance = Math.random() * radius; // Random distance from the center
-        const angle = Math.random() * 2 * Math.PI; // Random angle in radians
-        const x = width / 2 + distance * Math.cos(angle);
-        const y = height / 2 + distance * Math.sin(angle);
-        const size = Math.max(2, Math.log10(holder.amount) * 1.5); // Size based on amount
-        return { ...holder, x, y, size };
-      });
-    };
-  
     useEffect(() => {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      const width = canvas.width = window.innerWidth;
-      const height = canvas.height = window.innerHeight;
+      const width = window.innerWidth * 0.7; // Reserve some space for the list
+      const height = window.innerHeight;
   
-      // Generate truly random positions for each holder
-      const holderPositions = generateRandomPositions(filteredHolders, width, height);
+      // Set up the SVG canvas
+      const svg = d3.select(svgRef.current)
+        .attr("width", width)
+        .attr("height", height)
+        .style("background-color", "black");
   
-      // Draw the star map
-      const draw = () => {
-        ctx.clearRect(0, 0, width, height);
+      svg.selectAll("*").remove(); // Clear previous drawings
   
-        // Draw the central sun
-        ctx.fillStyle = 'yellow';
-        ctx.beginPath();
-        ctx.arc(width / 2, height / 2, 10, 0, 2 * Math.PI);
-        ctx.fill();
+      // Draw the central sun
+      svg.append("circle")
+        .attr("cx", width / 2)
+        .attr("cy", height / 2)
+        .attr("r", 10)
+        .attr("fill", "yellow");
   
-        // Draw each planet in random positions
-        holderPositions.forEach((holder, index) => {
-          ctx.fillStyle = `hsl(${(index * 40) % 360}, 100%, 50%)`; // Color based on index
-          ctx.beginPath();
-          ctx.arc(holder.x, holder.y, holder.size, 0, 2 * Math.PI);
-          ctx.fill();
+      // Generate orbit parameters for each holder
+      const orbitData = filteredHolders.map((holder, index) => {
+        const orbitRadius = 50 + Math.random() * (Math.min(width, height) / 2 - 50); // Distance from center
+        const orbitSpeed = 0.001 + Math.random() * 0.002; // Speed of orbit
+        const size = Math.max(2, Math.log10(holder.amount) * 1.5); // Size based on amount
+        const initialAngle = Math.random() * 2 * Math.PI; // Random starting angle
+        return { ...holder, orbitRadius, orbitSpeed, size, angle: initialAngle };
+      });
+  
+      // Function to update the position of each planet in its orbit
+      const updateOrbits = () => {
+        svg.selectAll(".planet")
+          .data(orbitData)
+          .join("circle")
+          .attr("class", "planet")
+          .attr("r", d => d.size)
+          .attr("fill", (d, i) => `hsl(${(i * 40) % 360}, 100%, 50%)`)
+          .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
+          .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle));
+  
+        // Update the angle for each planet to create the orbit effect
+        orbitData.forEach(d => {
+          d.angle += d.orbitSpeed; // Increment angle based on orbit speed
         });
       };
   
-      draw();
+      // Animation loop
+      d3.timer(updateOrbits);
   
     }, [filteredHolders]);
   
     // Handle search input changes
     const handleSearchChange = (e) => {
-      setSearchQuery(e.target.value);
       const query = e.target.value.toLowerCase();
+      setSearchQuery(query);
   
-      // Filter holders based on the search query
+      // Filter holders based on prefix match
       setFilteredHolders(
-        staticHolders.filter((holder) => holder.holder.toLowerCase().includes(query))
+        staticHolders.filter((holder) => holder.holder.toLowerCase().startsWith(query))
       );
     };
   
     return (
-      <div style={{ width: '100vw', height: '100vh', position: 'relative', backgroundColor: '#000' }}>
-        {/* Search Input */}
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          placeholder="Search for your address..."
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
-            padding: '8px',
-            fontSize: '16px',
-            borderRadius: '5px',
-            border: '1px solid #ccc',
-          }}
-        />
-        <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#000' }}>
+        {/* Visualization */}
+        <div style={{ flex: 7, position: 'relative' }}>
+          <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
+        </div>
+  
+        {/* Sidebar for Search and Holder List */}
+        <div style={{ flex: 3, padding: '10px', color: 'white', overflowY: 'auto', maxHeight: '100vh' }}>
+          {/* Search Input */}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search for your address..."
+            style={{
+              width: '100%',
+              padding: '10px',
+              fontSize: '16px',
+              borderRadius: '5px',
+              border: '1px solid #ccc',
+              marginBottom: '10px',
+            }}
+          />
+          
+          {/* Holder List */}
+          <div style={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+            {filteredHolders.length > 0 ? (
+              filteredHolders.map((holder, index) => (
+                <div key={index} style={{ marginBottom: '8px', padding: '5px', border: '1px solid #444', borderRadius: '5px' }}>
+                  <div><strong>Address:</strong> {holder.holder}</div>
+                  <div><strong>Amount:</strong> {holder.amount}</div>
+                </div>
+              ))
+            ) : (
+              <div style={{ color: '#888' }}>No results found</div>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
   
-  export default GalaxyCanvas;
+  export default GalaxyD3;
+  
+  
