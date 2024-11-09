@@ -4,23 +4,27 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
 const HOLDERS_API_URL = '/api/pumpfun/holders';
+const EXCLUDED_ADDRESS = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
 
 const GalaxyD3 = () => {
     const svgRef = useRef();
+    const tooltipRef = useRef(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filteredHolders, setFilteredHolders] = useState([]); // Start with an empty list
-    const allHolders = useRef([]); // Store all fetched holders to filter dynamically
+    const [allHolders, setAllHolders] = useState([]);
     const existingHolders = useRef(new Set()); // Track existing holder addresses
     const orbitDataRef = useRef([]); // Persistent holder orbit data to avoid resetting
-    let tooltip
+    let currentHighlightedHolder = useRef(null); // Track the current highlighted holder for tooltip
+
     // Function to fetch holders from the API
     const fetchHolders = async () => {
         try {
             const response = await fetch(HOLDERS_API_URL);
             const data = await response.json();
 
-            // Add only new holders that aren't already in the existing set
-            const newHolders = data.filter(holder => !existingHolders.current.has(holder.holder));
+            // Exclude the specific address and add only new holders that aren't already in the existing set
+            const newHolders = data.filter(holder => 
+                holder.holder !== EXCLUDED_ADDRESS && !existingHolders.current.has(holder.holder)
+            );
 
             // Update the set with new holder addresses
             newHolders.forEach(holder => existingHolders.current.add(holder.holder));
@@ -36,16 +40,13 @@ const GalaxyD3 = () => {
             const newOrbitData = newHolders.map(holder => ({
                 ...holder,
                 orbitRadius: 50 + Math.random() * (Math.min(width, height) / 2 - 50),
-                orbitSpeed: 0.001 + Math.random() * 0.002,
+                orbitSpeed: 0.0005 + Math.random() * 0.001, // Slower speed
                 size: sizeScale(holder.amount),
                 angle: Math.random() * 2 * Math.PI
             }));
 
             orbitDataRef.current = [...orbitDataRef.current, ...newOrbitData]; // Append without resetting
-
-            // Append new holders to the allHolders list and update filteredHolders
-            allHolders.current = [...allHolders.current, ...newHolders];
-            setFilteredHolders(allHolders.current); // Show all holders initially
+            setAllHolders(prev => [...prev, ...newHolders]); // Store all holders for sidebar display
         } catch (error) {
             console.error("Error fetching holders:", error);
         }
@@ -54,7 +55,7 @@ const GalaxyD3 = () => {
     // Initial fetch and periodic update
     useEffect(() => {
         fetchHolders(); // Initial fetch
-        const intervalId = setInterval(fetchHolders, 3000); // Poll every 5 seconds
+        const intervalId = setInterval(fetchHolders, 5000); // Poll every 5 seconds
         
         return () => clearInterval(intervalId); // Cleanup interval on component unmount
     }, []);
@@ -92,38 +93,25 @@ const GalaxyD3 = () => {
 
         pulsate(); // Start the pulsating effect
 
-        // Tooltip setup
-        tooltip = d3.select("body")
-            .append("div")
-            .attr("class", "tooltip")
-            .style("position", "absolute")
-            .style("background", "rgba(0, 0, 0, 0.85)")
-            .style("color", "#00ff00")
-            .style("padding", "2px 4px")
-            .style("border-radius", "2px")
-            .style("font-family", "'Press Start 2P', sans-serif")
-            .style("font-size", "8px")
-            .style("pointer-events", "none")
-            .style("opacity", 0)
-            .style("transition", "opacity 0.2s ease");
+        // Initialize tooltip only once
+        if (!tooltipRef.current) {
+            tooltipRef.current = d3.select("body")
+                .append("div")
+                .attr("class", "tooltip")
+                .style("position", "absolute")
+                .style("background", "rgba(0, 0, 0, 0.85)")
+                .style("color", "#00ff00")
+                .style("padding", "2px 4px")
+                .style("border-radius", "2px")
+                .style("font-family", "'Press Start 2P', sans-serif")
+                .style("font-size", "8px")
+                .style("pointer-events", "none")
+                .style("opacity", 0)
+                .style("transition", "opacity 0.2s ease");
+        }
 
         // Function to render and update orbits
         const updateOrbits = () => {
-            // Draw the trails
-            svg.selectAll(".trail")
-                .data(orbitDataRef.current)
-                .join("circle")
-                .attr("class", "trail")
-                .attr("r", 3)
-                .attr("fill", "rgba(255, 255, 255, 0.5)")
-                .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
-                .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle))
-                .style("opacity", 0.2)
-                .transition()
-                .duration(3000)
-                .style("opacity", 0)
-                .remove();
-
             // Draw the planets
             svg.selectAll(".planet")
                 .data(orbitDataRef.current, d => d.holder)
@@ -134,35 +122,49 @@ const GalaxyD3 = () => {
                 .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
                 .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle))
                 .on("mouseover", (event, d) => {
-                    tooltip.style("opacity", 1)
+                    currentHighlightedHolder.current = d;
+                    tooltipRef.current
+                        .style("opacity", 1)
                         .html(`<strong>Address:</strong> ${d.holder}<br><strong>Amount:</strong> ${d.amount}`);
                 })
-                .on("mousemove", (event) => {
-                    tooltip.style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 10) + "px");
-                })
                 .on("mouseout", () => {
-                    tooltip.style("opacity", 0);
+                    currentHighlightedHolder.current = null;
+                    tooltipRef.current.style("opacity", 0);
                 });
 
-            // Update angle for each holder in orbit to create animation
+            // Update angle for each holder in orbit and tooltip position if highlighted
             orbitDataRef.current.forEach(d => {
                 d.angle += d.orbitSpeed;
+                if (currentHighlightedHolder.current === d) {
+                    tooltipRef.current
+                        .style("left", `${width / 2 + d.orbitRadius * Math.cos(d.angle) + 10}px`)
+                        .style("top", `${height / 2 + d.orbitRadius * Math.sin(d.angle) - 10}px`);
+                }
             });
         };
 
         // Start the animation loop
         d3.timer(updateOrbits);
 
-    }, [filteredHolders]);
+    }, [allHolders]);
 
-    // Handle search input changes
+    // Handle search input changes to highlight the specified address
     const handleSearchChange = (e) => {
         const query = e.target.value.trim().toLowerCase();
         setSearchQuery(query);
 
-        // Filter holders based on search query
-        setFilteredHolders(query ? allHolders.current.filter(holder => holder.holder.toLowerCase().includes(query)) : allHolders.current);
+        // Highlight the specified address if it matches
+        const holderToHighlight = allHolders.find(holder => holder.holder.toLowerCase() === query);
+        if (holderToHighlight) {
+            currentHighlightedHolder.current = holderToHighlight;
+            tooltipRef.current
+                .style("opacity", 1)
+                .html(`<strong>Address:</strong> ${holderToHighlight.holder}<br><strong>Amount:</strong> ${holderToHighlight.amount}`);
+        } else {
+            // Hide tooltip if no match found
+            currentHighlightedHolder.current = null;
+            tooltipRef.current.style("opacity", 0);
+        }
     };
 
     return (
@@ -179,7 +181,7 @@ const GalaxyD3 = () => {
                     type="text"
                     value={searchQuery}
                     onChange={handleSearchChange}
-                    placeholder="Search for your address..."
+                    placeholder="Enter address to highlight..."
                     style={{
                         width: '100%',
                         padding: '10px',
@@ -197,15 +199,15 @@ const GalaxyD3 = () => {
 
                 {/* Holder List */}
                 <div style={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
-                    {filteredHolders.length > 0 ? (
-                        filteredHolders.map((holder, index) => (
+                    {allHolders.length > 0 ? (
+                        allHolders.map((holder, index) => (
                             <div key={index} style={{ marginBottom: '8px', padding: '5px', border: '1px solid #444', borderRadius: '5px' }}>
                                 <div><strong>Address:</strong> {holder.holder}</div>
                                 <div><strong>Amount:</strong> {holder.amount}</div>
                             </div>
                         ))
                     ) : (
-                        <div style={{ color: '#888' }}>No results found</div>
+                        <div style={{ color: '#888' }}>Loading holders...</div>
                     )}
                 </div>
             </div>

@@ -1,7 +1,7 @@
 // src/app/api/pumpfun/holders/route.js
 
 export async function GET() {
-    const tokenAddress = "F5JCDgv6MkzMVpPixc1GaEBh4RwxPviaveSY5fHBpump"; // Replace this with the specific token's mint address
+    const tokenAddress = "FFM66kQBuKQPFnrPDsaEtgdWBJZBbmX9eCet5wbCpump"; // Replace this with the specific token's mint address
     const apiKey = "954a9f74-6dbb-47cc-807c-daa363e99f97"; // Your Helius API key
     const url = `https://mainnet.helius-rpc.com/?api-key=${apiKey}`;
   
