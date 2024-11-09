@@ -9,8 +9,11 @@ body, html, #__next, .container {
   font-family: 'Press Start 2P', sans-serif;
   font-size: 12px;
   display: flex;
-  justify-content: center;
+  flex-direction: column; /* Ensures content stacks vertically */
+  justify-content: flex-start; /* Aligns content at the top */
   align-items: center;
+  overflow: hidden; /* Prevents overflow */
+  box-sizing: border-box; /* Ensures padding/margin do not affect element size */
 }
 
 /* Tooltip */
@@ -35,12 +38,14 @@ input {
   font-family: inherit;
   font-size: 12px;
   outline: none;
+  margin-top: 10px; /* Adds spacing below the title */
 }
 
 /* SVG Border */
 svg {
   border: 1px solid #00ff00;
   background-color: #000; /* Black background */
+  margin-top: 10px; /* Adds spacing below the title or input if applicable */
 }
 
 /* Holder List */
@@ -56,3 +61,12 @@ svg {
 .center-text {
   text-align: center;
 }
+
+/* Title Styling (if applicable) */
+.title {
+  margin-top: 20px; /* Add margin to push title away from the top */
+  padding: 5px;
+  font-size: 16px;
+}
+
+

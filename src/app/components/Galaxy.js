@@ -98,8 +98,33 @@ const GalaxyD3 = () => {
                 .attr("fill", (d, i) => `hsl(${(i * 40) % 360}, 100%, 50%)`)
                 .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
                 .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle))
+                .style("filter", d =>
+                    selectedHolders.some(holder => holder.holder == d.holder)
+                        ? "drop-shadow(0 0 15px rgba(255, 255, 0, 1))" // Apply glow effect for selected planets
+                        : "none"
+                )
                 .on("mouseover", (event, d) => setHoveredHolder(d))
-                .on("mouseout", () => setHoveredHolder(null));
+                .on("mouseout", () => setHoveredHolder(null))
+                .transition()
+                .duration(1000)
+                .attr("r", d => 
+                    selectedHolders.some(holder => holder.holder === d.holder) 
+                        ? d.size * 1.5 // Increase size for pulsating effect
+                        : d.size
+                )
+                .style("filter", d =>
+                    selectedHolders.some(holder => holder.holder === d.holder)
+                        ? "drop-shadow(0 0 25px rgba(255, 255, 0, 1))" // Stronger glow during pulsation
+                        : "none"
+                )
+                .transition()
+                .duration(1000)
+                .attr("r", d => d.size)
+                .style("filter", d =>
+                    selectedHolders.some(holder => holder.holder === d.holder)
+                        ? "drop-shadow(0 0 15px rgba(255, 255, 0, 1))" // Revert to original glow
+                        : "none"
+                );
 
             orbitDataRef.current.forEach(d => {
                 d.angle += d.orbitSpeed;
@@ -134,11 +159,13 @@ const GalaxyD3 = () => {
 
     }, [allHolders, selectedHolders, hoveredHolder]);
 
-    const handleCheckboxChange = (holder) => {
+    const handleHolderClick = (holder) => {
         setSelectedHolders(prevSelected => {
             if (prevSelected.some(selected => selected.holder === holder.holder)) {
+                // Deselect if already selected
                 return prevSelected.filter(selected => selected.holder !== holder.holder);
             } else {
+                // Add to selected holders
                 return [...prevSelected, holder];
             }
         });
@@ -206,13 +233,20 @@ const GalaxyD3 = () => {
                         allHolders
                             .filter(holder => holder.holder.toLowerCase().startsWith(searchQuery))
                             .map(holder => (
-                                <div key={holder.holder} style={{ display: 'flex', alignItems: 'center', padding: '5px' }}>
-                                    <input
-                                        type="checkbox"
-                                        style={{ marginRight: '8px' }}
-                                        checked={selectedHolders.some(selected => selected.holder === holder.holder)}
-                                        onChange={() => handleCheckboxChange(holder)}
-                                    />
+                                <div
+                                    key={holder.holder}
+                                    onClick={() => handleHolderClick(holder)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '5px',
+                                        marginBottom: '5px',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer',
+                                        backgroundColor: selectedHolders.some(selected => selected.holder === holder.holder) ? 'green' : 'transparent',
+                                        color: selectedHolders.some(selected => selected.holder === holder.holder) ? 'white' : 'inherit',
+                                    }}
+                                >
                                     <div>
                                         <div>Address: {holder.holder}</div>
                                         <div>Amount: {holder.amount}</div>
