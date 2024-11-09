@@ -40,8 +40,8 @@ const GalaxyD3 = () => {
             const newOrbitData = newHolders.map(holder => ({
                 ...holder,
                 orbitRadius: 50 + Math.random() * (Math.min(width, height) / 2 - 50),
-                orbitSpeed: 0.0005 + Math.random() * 0.001, // Slower speed
-                size: sizeScale(holder.amount),
+                orbitSpeed: 0.0002 + Math.random() * 0.00000001, // Slower speed
+                size: sizeScale(holder.amount*15),
                 angle: Math.random() * 2 * Math.PI
             }));
 
@@ -51,7 +51,7 @@ const GalaxyD3 = () => {
             console.error("Error fetching holders:", error);
         }
     };
-
+    
     // Initial fetch and periodic update
     useEffect(() => {
         fetchHolders(); // Initial fetch
@@ -122,15 +122,14 @@ const GalaxyD3 = () => {
                 .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
                 .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle))
                 .on("mouseover", (event, d) => {
-                    currentHighlightedHolder.current = d;
-                    tooltipRef.current
-                        .style("opacity", 1)
-                        .html(`<strong>Address:</strong> ${d.holder}<br><strong>Amount:</strong> ${d.amount}`);
+                    if (currentHighlightedHolder.current !== d) {
+                        currentHighlightedHolder.current = d;
+                        tooltipRef.current
+                            .style("opacity", 1)
+                            .html(`<strong>Address:</strong> ${d.holder}<br><strong>Amount:</strong> ${d.amount}`);
+                    }
                 })
-                .on("mouseout", () => {
-                    currentHighlightedHolder.current = null;
-                    tooltipRef.current.style("opacity", 0);
-                });
+                
 
             // Update angle for each holder in orbit and tooltip position if highlighted
             orbitDataRef.current.forEach(d => {
@@ -198,18 +197,23 @@ const GalaxyD3 = () => {
                 />
 
                 {/* Holder List */}
-                <div style={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
-                    {allHolders.length > 0 ? (
-                        allHolders.map((holder, index) => (
-                            <div key={index} style={{ marginBottom: '8px', padding: '5px', border: '1px solid #444', borderRadius: '5px' }}>
-                                <div><strong>Address:</strong> {holder.holder}</div>
-                                <div><strong>Amount:</strong> {holder.amount}</div>
-                            </div>
-                        ))
-                    ) : (
-                        <div style={{ color: '#888' }}>Loading holders...</div>
-                    )}
-                </div>
+{/* Holder List */}
+                    <div style={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+                        {allHolders.length > 0 ? (
+                            // Filter holders based on the search query (case-insensitive)
+                            allHolders
+                                .filter(holder => holder.holder.toLowerCase().includes(searchQuery.toLowerCase()))
+                                .map((holder, index) => (
+                                    <div key={index} style={{ marginBottom: '8px', padding: '5px', border: '1px solid #444', borderRadius: '5px' }}>
+                                        <div><strong>Address:</strong> {holder.holder}</div>
+                                        <div><strong>Amount:</strong> {holder.amount}</div>
+                                    </div>
+                                ))
+                        ) : (
+                            <div style={{ color: 'white' }}>Loading holders...</div>
+                        )}
+                    </div>
+
             </div>
         </div>
     );

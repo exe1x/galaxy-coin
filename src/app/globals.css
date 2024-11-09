@@ -4,7 +4,6 @@ body, html, #__next, div {
   padding: 0;
   width: 100vw;
   height: 100vh;
-  overflow: hidden;
   background-color: #000;
 }
 .tooltip {
@@ -54,6 +53,15 @@ input, .tooltip, .planet {
 svg {
   border: 5px solid #3D4B35; /* Add a border around your SVG to simulate a "screen" */
   box-shadow: 4px 4px 0px #8A9C66; /* Create a shadow effect */
+}
+.holder-item {
+  background-color: rgba(0, 0, 0, 0.8); /* Example background for visibility */
+  color: white;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+  margin-left: -30px;
+  z-index: 1000
 }
 
 /* Optional: Hover effects to enhance the feel */
