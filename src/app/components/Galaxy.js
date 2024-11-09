@@ -8,12 +8,13 @@ const EXCLUDED_ADDRESS = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
 
 const GalaxyD3 = () => {
     const svgRef = useRef();
-    const tooltipRef = useRef(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [allHolders, setAllHolders] = useState([]);
-    const existingHolders = useRef(new Set()); // Track existing holder addresses
-    const orbitDataRef = useRef([]); // Persistent holder orbit data to avoid resetting
-    let currentHighlightedHolder = useRef(null); // Track the current highlighted holder for tooltip
+    const [selectedHolders, setSelectedHolders] = useState([]); // Track multiple selected holders
+    const [hoveredHolder, setHoveredHolder] = useState(null); // Track the current hovered holder for tooltip
+    const existingHolders = useRef(new Set());
+    const orbitDataRef = useRef([]);
+    const tooltipRefs = useRef(new Map()); // Map for dynamic tooltip references by holder address
 
     // Function to fetch holders from the API
     const fetchHolders = async () => {
@@ -21,15 +22,12 @@ const GalaxyD3 = () => {
             const response = await fetch(HOLDERS_API_URL);
             const data = await response.json();
 
-            // Exclude the specific address and add only new holders that aren't already in the existing set
-            const newHolders = data.filter(holder => 
+            const newHolders = data.filter(holder =>
                 holder.holder !== EXCLUDED_ADDRESS && !existingHolders.current.has(holder.holder)
             );
 
-            // Update the set with new holder addresses
             newHolders.forEach(holder => existingHolders.current.add(holder.holder));
 
-            // Add new holders to orbitDataRef with unique orbit properties
             const width = window.innerWidth * 0.7;
             const height = window.innerHeight;
 
@@ -40,24 +38,23 @@ const GalaxyD3 = () => {
             const newOrbitData = newHolders.map(holder => ({
                 ...holder,
                 orbitRadius: 50 + Math.random() * (Math.min(width, height) / 2 - 50),
-                orbitSpeed: 0.0002 + Math.random() * 0.00000001, // Slower speed
-                size: sizeScale(holder.amount*15),
+                orbitSpeed: 0.0002 + Math.random() * 0.00000001,
+                size: sizeScale(holder.amount * 15),
                 angle: Math.random() * 2 * Math.PI
             }));
 
-            orbitDataRef.current = [...orbitDataRef.current, ...newOrbitData]; // Append without resetting
-            setAllHolders(prev => [...prev, ...newHolders]); // Store all holders for sidebar display
+            orbitDataRef.current = [...orbitDataRef.current, ...newOrbitData];
+            setAllHolders(prev => [...prev, ...newHolders]);
         } catch (error) {
             console.error("Error fetching holders:", error);
         }
     };
-    
-    // Initial fetch and periodic update
+
     useEffect(() => {
-        fetchHolders(); // Initial fetch
-        const intervalId = setInterval(fetchHolders, 5000); // Poll every 5 seconds
+        fetchHolders();
+        const intervalId = setInterval(fetchHolders, 5000);
         
-        return () => clearInterval(intervalId); // Cleanup interval on component unmount
+        return () => clearInterval(intervalId);
     }, []);
 
     useEffect(() => {
@@ -69,9 +66,8 @@ const GalaxyD3 = () => {
             .attr("height", height)
             .style("background", "linear-gradient(135deg, #1f1c2c, #928dab)");
 
-        svg.selectAll("*").remove(); // Clear previous drawings
+        svg.selectAll("*").remove();
 
-        // Draw the central sun
         const sun = svg.append("circle")
             .attr("cx", width / 2)
             .attr("cy", height / 2)
@@ -91,28 +87,9 @@ const GalaxyD3 = () => {
                 .on("end", pulsate);
         }
 
-        pulsate(); // Start the pulsating effect
+        pulsate();
 
-        // Initialize tooltip only once
-        if (!tooltipRef.current) {
-            tooltipRef.current = d3.select("body")
-                .append("div")
-                .attr("class", "tooltip")
-                .style("position", "absolute")
-                .style("background", "rgba(0, 0, 0, 0.85)")
-                .style("color", "#00ff00")
-                .style("padding", "2px 4px")
-                .style("border-radius", "2px")
-                .style("font-family", "'Press Start 2P', sans-serif")
-                .style("font-size", "8px")
-                .style("pointer-events", "none")
-                .style("opacity", 0)
-                .style("transition", "opacity 0.2s ease");
-        }
-
-        // Function to render and update orbits
         const updateOrbits = () => {
-            // Draw the planets
             svg.selectAll(".planet")
                 .data(orbitDataRef.current, d => d.holder)
                 .join("circle")
@@ -121,66 +98,94 @@ const GalaxyD3 = () => {
                 .attr("fill", (d, i) => `hsl(${(i * 40) % 360}, 100%, 50%)`)
                 .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
                 .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle))
-                .on("mouseover", (event, d) => {
-                    if (currentHighlightedHolder.current !== d) {
-                        currentHighlightedHolder.current = d;
-                        tooltipRef.current
-                            .style("opacity", 1)
-                            .html(`<strong>Address:</strong> ${d.holder}<br><strong>Amount:</strong> ${d.amount}`);
-                    }
-                })
-                
+                .on("mouseover", (event, d) => setHoveredHolder(d))
+                .on("mouseout", () => setHoveredHolder(null));
 
-            // Update angle for each holder in orbit and tooltip position if highlighted
             orbitDataRef.current.forEach(d => {
                 d.angle += d.orbitSpeed;
-                if (currentHighlightedHolder.current === d) {
-                    tooltipRef.current
-                        .style("left", `${width / 2 + d.orbitRadius * Math.cos(d.angle) + 10}px`)
-                        .style("top", `${height / 2 + d.orbitRadius * Math.sin(d.angle) - 10}px`);
+            });
+
+            // Update tooltip positions dynamically for selected holders
+            selectedHolders.forEach(holder => {
+                const orbitData = orbitDataRef.current.find(d => d.holder === holder.holder);
+                if (orbitData) {
+                    const tooltipEl = tooltipRefs.current.get(holder.holder);
+                    if (tooltipEl) {
+                        tooltipEl.style.left = `${width / 2 + orbitData.orbitRadius * Math.cos(orbitData.angle) + 10}px`;
+                        tooltipEl.style.top = `${height / 2 + orbitData.orbitRadius * Math.sin(orbitData.angle) - 10}px`;
+                    }
                 }
             });
+
+            // Update tooltip position for hovered holder
+            if (hoveredHolder) {
+                const hoveredOrbitData = orbitDataRef.current.find(d => d.holder === hoveredHolder.holder);
+                if (hoveredOrbitData) {
+                    const tooltipEl = tooltipRefs.current.get(hoveredHolder.holder);
+                    if (tooltipEl) {
+                        tooltipEl.style.left = `${width / 2 + hoveredOrbitData.orbitRadius * Math.cos(hoveredOrbitData.angle) + 10}px`;
+                        tooltipEl.style.top = `${height / 2 + hoveredOrbitData.orbitRadius * Math.sin(hoveredOrbitData.angle) - 10}px`;
+                    }
+                }
+            }
         };
 
-        // Start the animation loop
         d3.timer(updateOrbits);
 
-    }, [allHolders]);
+    }, [allHolders, selectedHolders, hoveredHolder]);
 
-    // Handle search input changes to highlight the specified address
-    const handleSearchChange = (e) => {
-        const query = e.target.value.trim().toLowerCase();
-        setSearchQuery(query);
-
-        // Highlight the specified address if it matches
-        const holderToHighlight = allHolders.find(holder => holder.holder.toLowerCase() === query);
-        if (holderToHighlight) {
-            currentHighlightedHolder.current = holderToHighlight;
-            tooltipRef.current
-                .style("opacity", 1)
-                .html(`<strong>Address:</strong> ${holderToHighlight.holder}<br><strong>Amount:</strong> ${holderToHighlight.amount}`);
-        } else {
-            // Hide tooltip if no match found
-            currentHighlightedHolder.current = null;
-            tooltipRef.current.style("opacity", 0);
-        }
+    const handleCheckboxChange = (holder) => {
+        setSelectedHolders(prevSelected => {
+            if (prevSelected.some(selected => selected.holder === holder.holder)) {
+                return prevSelected.filter(selected => selected.holder !== holder.holder);
+            } else {
+                return [...prevSelected, holder];
+            }
+        });
     };
+
+    const renderTooltip = (holder) => (
+        <div
+            key={holder.holder}
+            ref={(el) => el && tooltipRefs.current.set(holder.holder, el)}
+            className="tooltip"
+            style={{
+                position: "absolute",
+                background: "rgba(0, 0, 0, 0.85)",
+                color: "#00ff00",
+                padding: "2px 4px",
+                borderRadius: "2px",
+                fontFamily: "'Press Start 2P', sans-serif",
+                fontSize: "8px",
+                pointerEvents: "none",
+                opacity: 1,
+                transition: "opacity 0.2s ease",
+            }}
+        >
+            <strong>Address:</strong> {holder.holder}<br />
+            <strong>Amount:</strong> {holder.amount}
+        </div>
+    );
 
     return (
         <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#000' }}>
-            {/* Visualization */}
             <div style={{ flex: 7, position: 'relative' }}>
                 <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
+                
+                {/* Tooltip for hovered holder */}
+                {hoveredHolder && renderTooltip(hoveredHolder)}
+                
+                {/* Tooltips for selected holders */}
+                {selectedHolders.map(holder => renderTooltip(holder))}
             </div>
 
             {/* Sidebar for Search and Holder List */}
             <div style={{ flex: 3, padding: '10px', color: 'white', overflowY: 'auto', maxHeight: '100vh' }}>
-                {/* Search Input */}
                 <input
                     type="text"
                     value={searchQuery}
-                    onChange={handleSearchChange}
-                    placeholder="Enter address to highlight..."
+                    onChange={(e) => setSearchQuery(e.target.value.toLowerCase())}
+                    placeholder="Enter address to filter..."
                     style={{
                         width: '100%',
                         padding: '10px',
@@ -196,24 +201,28 @@ const GalaxyD3 = () => {
                     }}
                 />
 
-                {/* Holder List */}
-{/* Holder List */}
-                    <div style={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
-                        {allHolders.length > 0 ? (
-                            // Filter holders based on the search query (case-insensitive)
-                            allHolders
-                                .filter(holder => holder.holder.toLowerCase().includes(searchQuery.toLowerCase()))
-                                .map((holder, index) => (
-                                    <div key={index} style={{ marginBottom: '8px', padding: '5px', border: '1px solid #444', borderRadius: '5px' }}>
-                                        <div><strong>Address:</strong> {holder.holder}</div>
-                                        <div><strong>Amount:</strong> {holder.amount}</div>
+                <div style={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+                    {allHolders.length > 0 ? (
+                        allHolders
+                            .filter(holder => holder.holder.toLowerCase().startsWith(searchQuery))
+                            .map(holder => (
+                                <div key={holder.holder} style={{ display: 'flex', alignItems: 'center', padding: '5px' }}>
+                                    <input
+                                        type="checkbox"
+                                        style={{ marginRight: '8px' }}
+                                        checked={selectedHolders.some(selected => selected.holder === holder.holder)}
+                                        onChange={() => handleCheckboxChange(holder)}
+                                    />
+                                    <div>
+                                        <div>Address: {holder.holder}</div>
+                                        <div>Amount: {holder.amount}</div>
                                     </div>
-                                ))
-                        ) : (
-                            <div style={{ color: 'white' }}>Loading holders...</div>
-                        )}
-                    </div>
-
+                                </div>
+                            ))
+                    ) : (
+                        <div>Loading holders...</div>
+                    )}
+                </div>
             </div>
         </div>
     );
