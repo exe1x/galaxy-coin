@@ -7,3 +7,71 @@ body, html, #__next, div {
   overflow: hidden;
   background-color: #000;
 }
+.tooltip {
+  width: auto; /* Ensure auto width */
+  height:auto;
+  max-width: 200px; /* Optional: Limit the width */
+}
+
+/* Apply a GameBoy-like pixelated, green tint screen effect */
+body {
+  background-color: #CADC9F; /* GameBoy-like greenish background */
+  color: #3D4B35; /* Dark greenish-gray text color */
+  font-family: 'Press Start 2P'; /* Retro pixel font */
+  font-size: 12px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+}
+
+/* Add pixelated effect */
+* {
+  image-rendering: pixelated;
+}
+
+/* Add borders and retro styling to elements */
+input, .tooltip, .planet {
+  border: 2px solid #3D4B35; /* Dark green border */
+  background-color: #B8C987; /* Lighter greenish color for input */
+  color: #3D4B35; /* Text color */
+  padding: 5px;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Apply a pixelated shadow effect */
+
+
+.tooltip {
+  box-shadow: 2px 2px 0px #8A9C66;
+}
+
+svg {
+  border: 5px solid #3D4B35; /* Add a border around your SVG to simulate a "screen" */
+  box-shadow: 4px 4px 0px #8A9C66; /* Create a shadow effect */
+}
+
+/* Optional: Hover effects to enhance the feel */
+input:hover, .tooltip:hover {
+  background-color: #A9BE87;
+}
+/* Add this to your CSS or inline styles */
+input {
+  color: white; /* Change to a lighter color if your background is dark */
+}
+
+div {
+  color: white; /* Ensures text in divs is visible on a dark background */
+}
+
+
+body {
+  cursor: url('/pixel-cursor-arrow-png.png'), auto; /* Converted to .png */
+}
+
+

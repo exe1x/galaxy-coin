@@ -894,35 +894,102 @@ const GalaxyD3 = () => {
     const [filteredHolders, setFilteredHolders] = useState(staticHolders);
   
     useEffect(() => {
-      const width = window.innerWidth * 0.7; // Reserve some space for the list
+      const width = window.innerWidth * 0.7;
       const height = window.innerHeight;
   
-      // Set up the SVG canvas
       const svg = d3.select(svgRef.current)
-        .attr("width", width)
-        .attr("height", height)
-        .style("background-color", "black");
+      .attr("width", width)
+      .attr("height", height)
+      .style("background", "linear-gradient(135deg, #1f1c2c, #928dab)"); // A retro gradient
+    
   
       svg.selectAll("*").remove(); // Clear previous drawings
   
       // Draw the central sun
-      svg.append("circle")
-        .attr("cx", width / 2)
-        .attr("cy", height / 2)
-        .attr("r", 10)
-        .attr("fill", "yellow");
+      const sun = svg.append("circle")
+      .attr("cx", width / 2)
+      .attr("cy", height / 2)
+      .attr("r", 15) // Increase size slightly
+      .attr("fill", "yellow")
+      .style("filter", "drop-shadow(0 0 10px rgba(255, 255, 0, 1))");
+    
+    function pulsate() {
+      sun.transition()
+        .duration(1000)
+        .attr("r", 20)
+        .style("filter", "drop-shadow(0 0 20px rgba(255, 255, 0, 1))")
+        .transition()
+        .duration(1000)
+        .attr("r", 19)
+        .style("filter", "drop-shadow(0 0 10px rgba(255, 255, 0, 1))")
+        .on("end", pulsate);
+    }
+    
+    pulsate(); // Start the pulsating effect
+    
   
       // Generate orbit parameters for each holder
       const orbitData = filteredHolders.map((holder, index) => {
-        const orbitRadius = 50 + Math.random() * (Math.min(width, height) / 2 - 50); // Distance from center
-        const orbitSpeed = 0.001 + Math.random() * 0.002; // Speed of orbit
-        const size = Math.max(2, Math.log10(holder.amount) * 1.5); // Size based on amount
-        const initialAngle = Math.random() * 2 * Math.PI; // Random starting angle
+        const orbitRadius = 50 + Math.random() * (Math.min(width, height) / 2 - 50);
+        const orbitSpeed = (0.001 + Math.random() * 0.002) / 2;
+        const sizeScale = d3.scaleLinear()
+          .domain([Math.min(...filteredHolders.map(h => h.amount)), Math.max(...filteredHolders.map(h => h.amount))])
+          .range([2, 20]);
+        const size = sizeScale(holder.amount);
+        const initialAngle = Math.random() * 2 * Math.PI;
         return { ...holder, orbitRadius, orbitSpeed, size, angle: initialAngle };
       });
   
+      // Create a tooltip element
+// Create a tooltip element
+    const tooltip = d3.select("body")
+    .append("div")
+    .attr("class", "tooltip")
+    .style("position", "absolute")
+    .style("background", "rgba(0, 0, 0, 0.85)")
+    .style("color", "#00ff00") // Retro green text
+    .style("padding", "2px 4px") // Reduced padding for smaller size
+    .style("border-radius", "2px")
+    .style("font-family", "'Press Start 2P', sans-serif") // Retro font
+    .style("font-size", "8px") // Smaller font size
+    .style("pointer-events", "none")
+    .style("opacity", 0)
+    .style("transition", "opacity 0.2s ease");
+
+
+      // Generate starry background
+    for (let i = 0; i < 100; i++) {
+        svg.append("circle")
+        .attr("cx", Math.random() * width)
+        .attr("cy", Math.random() * height)
+        .attr("r", Math.random() * 2)
+        .attr("fill", "rgba(255, 255, 255, 0.8)")
+        .style("opacity", Math.random() * 0.8)
+        .style("filter", "blur(1px)")
+        .transition()
+        .duration(5000 + Math.random() * 5000)
+        .style("opacity", 0)
+        .on("end", function() { d3.select(this).remove(); }); // Star fades out
+    }
+  
+    
+  
       // Function to update the position of each planet in its orbit
       const updateOrbits = () => {
+        svg.selectAll(".trail")
+        .data(orbitData)
+        .join("circle")
+        .attr("class", "trail")
+        .attr("r", 3) // Adjust trail size as desired
+        .attr("fill", "rgba(255, 255, 255, 0.5)") // Make trails semi-transparent
+        .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
+        .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle))
+        .style("opacity", 0.2) // Make trails faint for a cool effect
+        .transition()
+        .duration(3000) // Duration controls how long the trails last
+        .style("opacity", 0) // Fade out the trails
+        .remove(); // Remove trails after fading out
+
         svg.selectAll(".planet")
           .data(orbitData)
           .join("circle")
@@ -930,29 +997,47 @@ const GalaxyD3 = () => {
           .attr("r", d => d.size)
           .attr("fill", (d, i) => `hsl(${(i * 40) % 360}, 100%, 50%)`)
           .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
-          .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle));
+          .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle))
+          .on("mouseover", (event, d) => {
+            tooltip.style("opacity", 1)
+  .html(`<strong>Address:</strong> ${d.holder}<br><strong>Amount:</strong> ${d.amount}`);
+
+          })
+          .on("mousemove", (event) => {
+            tooltip.style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 10) + "px");
+          })
+          .on("mouseout", () => {
+            tooltip.style("opacity", 0);
+          });
   
-        // Update the angle for each planet to create the orbit effect
         orbitData.forEach(d => {
-          d.angle += d.orbitSpeed; // Increment angle based on orbit speed
+          d.angle += d.orbitSpeed;
         });
       };
   
       // Animation loop
       d3.timer(updateOrbits);
-  
     }, [filteredHolders]);
   
     // Handle search input changes
-    const handleSearchChange = (e) => {
-      const query = e.target.value.toLowerCase();
-      setSearchQuery(query);
-  
-      // Filter holders based on prefix match
-      setFilteredHolders(
-        staticHolders.filter((holder) => holder.holder.toLowerCase().startsWith(query))
-      );
-    };
+// Handle search input changes
+const handleSearchChange = (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    setSearchQuery(query);
+
+    // Filter holders based on substring match, not case sensitive
+    if (query) {
+        setFilteredHolders(
+            staticHolders.filter((holder) => holder.holder.toLowerCase().includes(query))
+        );
+    } else {
+        // If query is empty, show all holders
+        setFilteredHolders(staticHolders);
+    }
+};
+
+      
   
     return (
       <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#000' }}>
@@ -970,14 +1055,21 @@ const GalaxyD3 = () => {
             onChange={handleSearchChange}
             placeholder="Search for your address..."
             style={{
-              width: '100%',
-              padding: '10px',
-              fontSize: '16px',
-              borderRadius: '5px',
-              border: '1px solid #ccc',
-              marginBottom: '10px',
+                width: '100%',
+                padding: '10px',
+                fontSize: '16px',
+                fontFamily: "'Press Start 2P'",
+                background: 'black',
+                color: '#00ff00',
+                borderRadius: '5px',
+                border: '2px solid rgba(0, 255, 0, 0.8)', // Neon border effect
+                boxShadow: '0 0 10px rgba(0, 255, 0, 0.5)', // Glow shadow
+                marginBottom: '10px',
+                outline: 'none', // Remove default outline
             }}
-          />
+            />
+
+
           
           {/* Holder List */}
           <div style={{ maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
@@ -998,5 +1090,3 @@ const GalaxyD3 = () => {
   };
   
   export default GalaxyD3;
-  
-  
