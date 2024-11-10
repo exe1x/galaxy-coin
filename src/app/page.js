@@ -21,7 +21,7 @@ export default function Home() {
       {/* Centered Performance Tip Dialog */}
       {showDialog && (
         <div className="dialog">
-          <p>If the page becomes laggy, try refreshing to improve performance.</p>
+          <p>If the page becomes unresponsive, try refreshing to improve performance.</p>
           <button className="dialog-button" onClick={() => setShowDialog(false)}>Dismiss</button>
         </div>
       )}
