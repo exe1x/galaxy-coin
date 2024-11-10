@@ -5,7 +5,7 @@ body, html, #__next, .container {
   width: 100vw;
   height: 100vh;
   background-color: #000; /* Pure black background */
-  color: #00ff00; /* Bright green text for retro feel */
+  color: #fff; /* White text for contrast */
   font-family: 'Press Start 2P', sans-serif;
   font-size: 12px;
   display: flex;
@@ -16,57 +16,91 @@ body, html, #__next, .container {
   box-sizing: border-box; /* Ensures padding/margin do not affect element size */
 }
 
+/* Header Container */
+.header-container {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #111; /* Dark background to distinguish from the main area */
+  border-bottom: 2px solid #fff; /* White border to separate header */
+  box-sizing: border-box;
+}
+
+/* Title Styling */
+.title {
+  font-size: 18px;
+  color: #fff; /* White color for title */
+  margin: 0;
+}
+
+/* Button Styling */
+.button {
+  color: #fff;
+  background: none;
+  border: 1px solid #fff;
+  padding: 5px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: 10px;
+  text-transform: uppercase;
+  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.button:hover {
+  background-color: #fff;
+  color: #000;
+}
+
 /* Tooltip */
 .tooltip {
   width: auto;
   max-width: 200px;
   background-color: #000; /* Black background */
-  color: #00ff00; /* Green text */
+  color: #fff; /* White text */
   padding: 4px;
-  border: 1px solid #00ff00; /* Green border */
+  border: 1px solid #fff; /* White border */
   font-family: inherit;
   font-size: 10px;
   border-radius: 3px;
+  box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
 }
 
 /* Text Field */
 input {
-  border: 1px solid #00ff00;
+  border: 1px solid #fff;
   background-color: #000; /* Black background */
-  color: #00ff00; /* Green text */
+  color: #fff; /* White text */
   padding: 5px;
   font-family: inherit;
   font-size: 12px;
   outline: none;
-  margin-top: 10px; /* Adds spacing below the title */
+  margin-top: 10px;
+  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.5);
 }
 
 /* SVG Border */
 svg {
-  border: 1px solid #00ff00;
-  background-color: #000; /* Black background */
-  margin-top: 10px; /* Adds spacing below the title or input if applicable */
+  border: 1px solid #fff; /* White border around SVG */
+  background-color: #000;
+  margin-top: 10px;
+  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2);
 }
 
 /* Holder List */
 .holder-item {
-  background-color: #000; /* Black background */
-  color: #00ff00; /* Green text */
+  background-color: #111; /* Darker gray for subtle contrast */
+  color: #fff; /* White text */
   padding: 5px;
   font-size: 10px;
-  border-bottom: 1px solid #00ff00;
+  border-bottom: 1px solid #fff;
+  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2);
 }
 
 /* Centering Text */
 .center-text {
   text-align: center;
 }
-
-/* Title Styling (if applicable) */
-.title {
-  margin-top: 20px; /* Add margin to push title away from the top */
-  padding: 5px;
-  font-size: 16px;
-}
-
-

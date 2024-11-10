@@ -3,60 +3,99 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
-const HOLDERS_API_URL = '/api/pumpfun/holders';
+const WS_URL = 'ws://localhost:8080';
 const EXCLUDED_ADDRESS = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
 
 const GalaxyD3 = () => {
     const svgRef = useRef();
     const [searchQuery, setSearchQuery] = useState('');
     const [allHolders, setAllHolders] = useState([]);
-    const [selectedHolders, setSelectedHolders] = useState([]); // Track multiple selected holders
-    const [hoveredHolder, setHoveredHolder] = useState(null); // Track the current hovered holder for tooltip
+    const [selectedHolders, setSelectedHolders] = useState([]);
+    const [hoveredHolder, setHoveredHolder] = useState(null);
     const existingHolders = useRef(new Set());
     const orbitDataRef = useRef([]);
-    const tooltipRefs = useRef(new Map()); // Map for dynamic tooltip references by holder address
+    const tooltipRefs = useRef(new Map());
+    const retryInterval = useRef(null);
 
-    // Function to fetch holders from the API
-    const fetchHolders = async () => {
-        try {
-            const response = await fetch(HOLDERS_API_URL);
-            const data = await response.json();
-
-            const newHolders = data.filter(holder =>
-                holder.holder !== EXCLUDED_ADDRESS && !existingHolders.current.has(holder.holder)
-            );
-
-            newHolders.forEach(holder => existingHolders.current.add(holder.holder));
-
-            const width = window.innerWidth * 0.7;
-            const height = window.innerHeight;
-
-            const sizeScale = d3.scaleLinear()
-                .domain([Math.min(...data.map(h => h.amount)), Math.max(...data.map(h => h.amount))])
-                .range([2, 20]);
-
-            const newOrbitData = newHolders.map(holder => ({
-                ...holder,
-                orbitRadius: 50 + Math.random() * (Math.min(width, height) / 2 - 50),
-                orbitSpeed: 0.0002 + Math.random() * 0.00000001,
-                size: sizeScale(holder.amount * 15),
-                angle: Math.random() * 2 * Math.PI
-            }));
-
-            orbitDataRef.current = [...orbitDataRef.current, ...newOrbitData];
-            setAllHolders(prev => [...prev, ...newHolders]);
-        } catch (error) {
-            console.error("Error fetching holders:", error);
+    // Generate a consistent color based on the holder's address
+    const getColor = (holderAddress) => {
+        let hash = 0;
+        for (let i = 0; i < holderAddress.length; i++) {
+            hash = holderAddress.charCodeAt(i) + ((hash << 5) - hash);
         }
+        const hue = Math.abs(hash % 360);
+        return `hsl(${hue}, 100%, 50%)`;
+    };
+
+    const connectWebSocket = () => {
+        const ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+            console.log('Connected to WebSocket server');
+            clearInterval(retryInterval.current); // Clear any retry interval on successful connection
+            retryInterval.current = null;
+        };
+
+        let lastUpdate = Date.now();
+
+        ws.onmessage = (event) => {
+            const now = Date.now();
+            if (now - lastUpdate < 500) return; // Throttle updates to every 500ms
+            lastUpdate = now;
+
+            try {
+                const data = JSON.parse(event.data);
+                const newHolders = data.filter(holder => holder.holder !== EXCLUDED_ADDRESS);
+                const newHoldersSet = new Set(newHolders.map(h => h.holder));
+
+                orbitDataRef.current = orbitDataRef.current.filter(d => newHoldersSet.has(d.holder));
+
+                setAllHolders(newHolders);
+                existingHolders.current = new Set(newHolders.map(holder => holder.holder));
+
+                const width = window.innerWidth * 0.7;
+                const height = window.innerHeight;
+                const sizeScale = d3.scaleLinear()
+                    .domain([Math.min(...newHolders.map(h => h.amount)), Math.max(...newHolders.map(h => h.amount))])
+                    .range([2, 20]);
+
+                newHolders.forEach(holder => {
+                    if (!orbitDataRef.current.some(d => d.holder === holder.holder)) {
+                        orbitDataRef.current.push({
+                            ...holder,
+                            orbitRadius: 50 + Math.random() * (Math.min(width, height) / 2 - 50),
+                            orbitSpeed: 0.0002 + Math.random() * 0.00000001,
+                            size: 1.5 * sizeScale(holder.amount),
+                            angle: Math.random() * 2 * Math.PI
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Error parsing WebSocket data:', error);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('Disconnected from WebSocket server');
+
+            // Attempt reconnection every 5 seconds if the connection is closed
+            if (!retryInterval.current) {
+                retryInterval.current = setInterval(() => {
+                    console.log("Attempting reconnection...");
+                    connectWebSocket();
+                }, 5000);
+            }
+        };
     };
 
     useEffect(() => {
-        fetchHolders();
-        const intervalId = setInterval(fetchHolders, 5000);
-        
-        return () => clearInterval(intervalId);
+        connectWebSocket(); // Initial connection
+        return () => {
+            clearInterval(retryInterval.current); // Clear interval on unmount
+        };
     }, []);
 
+    // D3 rendering and other code remains the same
     useEffect(() => {
         const width = window.innerWidth * 0.7;
         const height = window.innerHeight;
@@ -95,12 +134,12 @@ const GalaxyD3 = () => {
                 .join("circle")
                 .attr("class", "planet")
                 .attr("r", d => d.size)
-                .attr("fill", (d, i) => `hsl(${(i * 40) % 360}, 100%, 50%)`)
+                .attr("fill", d => getColor(d.holder)) // Keep color consistent
                 .attr("cx", d => width / 2 + d.orbitRadius * Math.cos(d.angle))
                 .attr("cy", d => height / 2 + d.orbitRadius * Math.sin(d.angle))
                 .style("filter", d =>
-                    selectedHolders.some(holder => holder.holder == d.holder)
-                        ? "drop-shadow(0 0 15px rgba(255, 255, 0, 1))" // Apply glow effect for selected planets
+                    selectedHolders.some(holder => holder.holder === d.holder)
+                        ? "drop-shadow(0 0 15px rgba(255, 255, 255, 1))"
                         : "none"
                 )
                 .on("mouseover", (event, d) => setHoveredHolder(d))
@@ -109,12 +148,12 @@ const GalaxyD3 = () => {
                 .duration(1000)
                 .attr("r", d => 
                     selectedHolders.some(holder => holder.holder === d.holder) 
-                        ? d.size * 1.5 // Increase size for pulsating effect
+                        ? d.size * 1.5
                         : d.size
                 )
                 .style("filter", d =>
                     selectedHolders.some(holder => holder.holder === d.holder)
-                        ? "drop-shadow(0 0 25px rgba(255, 255, 0, 1))" // Stronger glow during pulsation
+                        ? "drop-shadow(0 0 25px rgba(255, 255, 255, 1))"
                         : "none"
                 )
                 .transition()
@@ -122,7 +161,7 @@ const GalaxyD3 = () => {
                 .attr("r", d => d.size)
                 .style("filter", d =>
                     selectedHolders.some(holder => holder.holder === d.holder)
-                        ? "drop-shadow(0 0 15px rgba(255, 255, 0, 1))" // Revert to original glow
+                        ? "drop-shadow(0 0 15px rgba(255, 255, 255, 1))"
                         : "none"
                 );
 
@@ -130,7 +169,6 @@ const GalaxyD3 = () => {
                 d.angle += d.orbitSpeed;
             });
 
-            // Update tooltip positions dynamically for selected holders
             selectedHolders.forEach(holder => {
                 const orbitData = orbitDataRef.current.find(d => d.holder === holder.holder);
                 if (orbitData) {
@@ -142,7 +180,6 @@ const GalaxyD3 = () => {
                 }
             });
 
-            // Update tooltip position for hovered holder
             if (hoveredHolder) {
                 const hoveredOrbitData = orbitDataRef.current.find(d => d.holder === hoveredHolder.holder);
                 if (hoveredOrbitData) {
@@ -162,10 +199,8 @@ const GalaxyD3 = () => {
     const handleHolderClick = (holder) => {
         setSelectedHolders(prevSelected => {
             if (prevSelected.some(selected => selected.holder === holder.holder)) {
-                // Deselect if already selected
                 return prevSelected.filter(selected => selected.holder !== holder.holder);
             } else {
-                // Add to selected holders
                 return [...prevSelected, holder];
             }
         });
@@ -179,7 +214,7 @@ const GalaxyD3 = () => {
             style={{
                 position: "absolute",
                 background: "rgba(0, 0, 0, 0.85)",
-                color: "#00ff00",
+                color: "#ffffff",
                 padding: "2px 4px",
                 borderRadius: "2px",
                 fontFamily: "'Press Start 2P', sans-serif",
@@ -199,14 +234,11 @@ const GalaxyD3 = () => {
             <div style={{ flex: 7, position: 'relative' }}>
                 <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
                 
-                {/* Tooltip for hovered holder */}
                 {hoveredHolder && renderTooltip(hoveredHolder)}
                 
-                {/* Tooltips for selected holders */}
                 {selectedHolders.map(holder => renderTooltip(holder))}
             </div>
 
-            {/* Sidebar for Search and Holder List */}
             <div style={{ flex: 3, padding: '10px', color: 'white', overflowY: 'auto', maxHeight: '100vh' }}>
                 <input
                     type="text"
@@ -219,10 +251,10 @@ const GalaxyD3 = () => {
                         fontSize: '16px',
                         fontFamily: "'Press Start 2P'",
                         background: 'black',
-                        color: '#00ff00',
+                        color: '#ffffff',
                         borderRadius: '5px',
-                        border: '2px solid rgba(0, 255, 0, 0.8)',
-                        boxShadow: '0 0 10px rgba(0, 255, 0, 0.5)',
+                        border: '2px solid rgba(255, 255, 255, 0.8)',
+                        boxShadow: '0 0 10px rgba(255, 255, 255, 0.5)',
                         marginBottom: '10px',
                         outline: 'none',
                     }}
@@ -243,8 +275,8 @@ const GalaxyD3 = () => {
                                         marginBottom: '5px',
                                         borderRadius: '5px',
                                         cursor: 'pointer',
-                                        backgroundColor: selectedHolders.some(selected => selected.holder === holder.holder) ? 'green' : 'transparent',
-                                        color: selectedHolders.some(selected => selected.holder === holder.holder) ? 'white' : 'inherit',
+                                        backgroundColor: selectedHolders.some(selected => selected.holder === holder.holder) ? 'white' : 'transparent',
+                                        color: selectedHolders.some(selected => selected.holder === holder.holder) ? 'black' : 'inherit',
                                     }}
                                 >
                                     <div>
