@@ -104,3 +104,46 @@ svg {
 .center-text {
   text-align: center;
 }
+
+/* Centered Dialog */
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  max-width: 400px;
+  background-color: #000; /* Match background */
+  color: #fff; /* White text */
+  padding: 20px;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
+  text-align: center;
+  font-family: 'Press Start 2P', sans-serif;
+  z-index: 1000; /* Ensure it appears above other content */
+}
+
+.dialog p {
+  margin: 0 0 15px 0;
+  font-size: 12px;
+}
+
+.dialog-button {
+  color: #fff;
+  background: none;
+  border: 1px solid #fff;
+  padding: 5px 15px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dialog-button:hover {
+  background-color: #fff;
+  color: #000;
+}
+
