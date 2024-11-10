@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
-const WS_URL = 'ws://localhost:8080';
+const WS_URL = 'wss://galaxy-back-9a36e3ecdac2.herokuapp.com/';
 const EXCLUDED_ADDRESS = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1';
 
 const GalaxyD3 = () => {
@@ -206,9 +206,9 @@ const GalaxyD3 = () => {
         });
     };
 
-    const renderTooltip = (holder) => (
+    const renderTooltip = (holder, index) => (
         <div
-            key={holder.holder}
+            key={`${holder.holder}-${index}`} // Make key unique by adding index
             ref={(el) => el && tooltipRefs.current.set(holder.holder, el)}
             className="tooltip"
             style={{
@@ -236,7 +236,7 @@ const GalaxyD3 = () => {
                 
                 {hoveredHolder && renderTooltip(hoveredHolder)}
                 
-                {selectedHolders.map(holder => renderTooltip(holder))}
+                {selectedHolders.map((holder, index) => renderTooltip(holder, index))}
             </div>
 
             <div style={{ flex: 3, padding: '10px', color: 'white', overflowY: 'auto', maxHeight: '100vh' }}>
@@ -264,9 +264,9 @@ const GalaxyD3 = () => {
                     {allHolders.length > 0 ? (
                         allHolders
                             .filter(holder => holder.holder.toLowerCase().startsWith(searchQuery))
-                            .map(holder => (
+                            .map((holder, index) => (
                                 <div
-                                    key={holder.holder}
+                                    key={`${holder.holder}-${index}`}
                                     onClick={() => handleHolderClick(holder)}
                                     style={{
                                         display: 'flex',
