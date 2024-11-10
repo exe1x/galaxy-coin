@@ -64,7 +64,7 @@ const GalaxyD3 = () => {
                         orbitDataRef.current.push({
                             ...holder,
                             orbitRadius: 50 + Math.random() * (Math.min(width, height) / 2 - 50),
-                            orbitSpeed: 0.00007,
+                            orbitSpeed: 0.00009,
                             size: 1.5 * sizeScale(holder.amount),
                             angle: Math.random() * 2 * Math.PI
                         });
@@ -110,23 +110,23 @@ const GalaxyD3 = () => {
         const sun = svg.append("circle")
             .attr("cx", width / 2)
             .attr("cy", height / 2)
-            .attr("r", 15)
+            .attr("r", 18) // Start with a slightly larger size to avoid large animation jumps
             .attr("fill", "yellow")
-            .style("filter", "drop-shadow(0 0 10px rgba(255, 255, 0, 1))");
+            .style("filter", "drop-shadow(0 0 15px rgba(255, 255, 0, 0.8))");
 
-        function pulsate() {
-            sun.transition()
-                .duration(1000)
-                .attr("r", 20)
-                .style("filter", "drop-shadow(0 0 20px rgba(255, 255, 0, 1))")
-                .transition()
-                .duration(1000)
-                .attr("r", 19)
-                .style("filter", "drop-shadow(0 0 10px rgba(255, 255, 0, 1))")
-                .on("end", pulsate);
-        }
+        // Apply CSS animation for a smoother, more efficient pulsate effect
+        sun.style("animation", "pulsate-animation 2s infinite ease-in-out")
+            .style("transform-origin", "center");
 
-        pulsate();
+        // Add CSS animation using D3
+        svg.append("style").html(`
+      @keyframes pulsate-animation {
+        0% { r: 18; filter: drop-shadow(0 0 10px rgba(255, 255, 0, 0.8)); }
+        50% { r: 20; filter: drop-shadow(0 0 20px rgba(255, 255, 0, 1)); }
+        100% { r: 18; filter: drop-shadow(0 0 10px rgba(255, 255, 0, 0.8)); }
+      }
+    `);
+
 
         const updateOrbits = () => {
             svg.selectAll(".planet")
@@ -146,8 +146,8 @@ const GalaxyD3 = () => {
                 .on("mouseout", () => setHoveredHolder(null))
                 .transition()
                 .duration(1000)
-                .attr("r", d => 
-                    selectedHolders.some(holder => holder.holder === d.holder) 
+                .attr("r", d =>
+                    selectedHolders.some(holder => holder.holder === d.holder)
                         ? d.size * 1.5
                         : d.size
                 )
@@ -233,9 +233,9 @@ const GalaxyD3 = () => {
         <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#000' }}>
             <div style={{ flex: 7, position: 'relative' }}>
                 <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
-                
+
                 {hoveredHolder && renderTooltip(hoveredHolder)}
-                
+
                 {selectedHolders.map((holder, index) => renderTooltip(holder, index))}
             </div>
 
