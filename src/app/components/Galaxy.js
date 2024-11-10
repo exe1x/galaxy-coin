@@ -64,7 +64,7 @@ const GalaxyD3 = () => {
                         orbitDataRef.current.push({
                             ...holder,
                             orbitRadius: 50 + Math.random() * (Math.min(width, height) / 2 - 50),
-                            orbitSpeed: 0.0000005,
+                            orbitSpeed: 0.000001,
                             size: 1.5 * sizeScale(holder.amount),
                             angle: Math.random() * 2 * Math.PI
                         });
