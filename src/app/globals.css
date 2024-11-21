@@ -4,8 +4,16 @@ body, html, #__next, .container {
   padding: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #000; /* Pure black background */
-  color: #fff; /* White text for contrast */
+  background-color: #4a412a; /* Earthy brown background */
+  background-color: #4a412a; /* Base brown */
+  background-image: 
+    radial-gradient(circle at 30% 40%, #6b5d3b, #4a412a 70%, #2e2618 100%), /* Main geode structure */
+    radial-gradient(circle at 70% 70%, #4a412a, #3a2f1d 60%, #2e2618 100%), /* Additional depth */
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0) 70%); /* Subtle shine */
+  background-size: cover; /* Ensures it fills the viewport */
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #eae7d6; /* Off-white text for contrast */
   font-family: 'Press Start 2P', sans-serif;
   font-size: 12px;
   display: flex;
@@ -23,81 +31,84 @@ body, html, #__next, .container {
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-  background-color: #111; /* Dark background to distinguish from the main area */
-  border-bottom: 2px solid #fff; /* White border to separate header */
+  background-color: #3b3224; /* Darker brown for header background */
+  border-bottom: 2px solid #7f6a4d; /* Subtle border for a military feel */
   box-sizing: border-box;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3); /* Adds depth */
 }
 
 /* Title Styling */
 .title {
   font-size: 18px;
-  color: #fff; /* White color for title */
+  color: #eae7d6; /* Off-white title color */
   margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Rugged shadow effect */
 }
 
 /* Button Styling */
 .button {
-  color: #fff;
-  background: none;
-  border: 1px solid #fff;
+  color: #eae7d6;
+  background-color: #3b3224;
+  border: 1px solid #7f6a4d;
   padding: 5px 10px;
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
   margin-left: 10px;
   text-transform: uppercase;
-  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2);
-  transition: background-color 0.3s, color 0.3s;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.4);
+  transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
 }
 
 .button:hover {
-  background-color: #fff;
+  background-color: #7f6a4d;
   color: #000;
+  box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.6);
 }
 
 /* Tooltip */
 .tooltip {
   width: auto;
   max-width: 200px;
-  background-color: #000; /* Black background */
-  color: #fff; /* White text */
+  background-color: #3b3224; /* Darker brown */
+  color: #eae7d6; /* Off-white text */
   padding: 4px;
-  border: 1px solid #fff; /* White border */
+  border: 1px solid #7f6a4d; /* Subtle border */
   font-family: inherit;
   font-size: 10px;
   border-radius: 3px;
-  box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 /* Text Field */
 input {
-  border: 1px solid #fff;
-  background-color: #000; /* Black background */
-  color: #fff; /* White text */
+  border: 1px solid #7f6a4d;
+  background-color: #3b3224; /* Dark brown */
+  color: #eae7d6; /* Off-white text */
   padding: 5px;
   font-family: inherit;
   font-size: 12px;
   outline: none;
   margin-top: 10px;
-  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.4);
 }
 
 /* SVG Border */
 svg {
-  border: 1px solid #fff; /* White border around SVG */
-  background-color: #000;
+  border: 2px solid #7f6a4d; /* Military brown border */
+  background-color: transparent; /* Matches geode background */
   margin-top: 10px;
-  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2);
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Holder List */
 .holder-item {
-  background-color: #111; /* Darker gray for subtle contrast */
-  color: #fff; /* White text */
+  background-color: #3b3224; /* Dark brown */
+  color: #eae7d6; /* Off-white text */
   padding: 5px;
   font-size: 10px;
-  border-bottom: 1px solid #fff;
-  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid #7f6a4d;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 /* Centering Text */
@@ -113,15 +124,15 @@ svg {
   transform: translate(-50%, -50%);
   width: 80%;
   max-width: 400px;
-  background-color: #000; /* Match background */
-  color: #fff; /* White text */
+  background-color: #3b3224; /* Darker brown background */
+  color: #eae7d6; /* Off-white text */
   padding: 20px;
-  border: 2px solid #fff;
+  border: 2px solid #7f6a4d;
   border-radius: 8px;
-  box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.5);
   text-align: center;
   font-family: 'Press Start 2P', sans-serif;
-  z-index: 1000; /* Ensure it appears above other content */
+  z-index: 1000;
 }
 
 .dialog p {
@@ -130,20 +141,26 @@ svg {
 }
 
 .dialog-button {
-  color: #fff;
-  background: none;
-  border: 1px solid #fff;
+  color: #eae7d6;
+  background-color: #3b3224;
+  border: 1px solid #7f6a4d;
   padding: 5px 15px;
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
   text-transform: uppercase;
-  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.2);
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.4);
   transition: background-color 0.3s, color 0.3s;
 }
 
 .dialog-button:hover {
-  background-color: #fff;
+  background-color: #7f6a4d;
   color: #000;
+  box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.6);
 }
 
+
+@keyframes geodeShimmer {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
