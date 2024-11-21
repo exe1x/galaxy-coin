@@ -14,7 +14,7 @@ export default function Home() {
         <div>
           <button
             className="button"
-            onClick={() => window.open("https://x.com/TrenchCoin", "_blank")}
+            onClick={() => window.open("https://x.com/TateTrenchArmy", "_blank")}
           >
             [Twitter]
           </button>
