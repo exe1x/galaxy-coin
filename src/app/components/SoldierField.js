@@ -10,6 +10,7 @@ const SoldierField = () => {
   const [allHolders, setAllHolders] = useState([]);
   const [hoveredEntity, setHoveredEntity] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [highlightedHolders, setHighlightedHolders] = useState([]);
   const battlefieldData = useRef([]);
   const retryInterval = useRef(null);
 
@@ -76,6 +77,19 @@ const SoldierField = () => {
       x: (normalizedHash % maxX) + 50, // Ensure padding
       y: ((normalizedHash >> 16) % maxY) + 50, // Ensure padding
     };
+  };
+
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  
+    // Highlight multiple entities
+    const matched = allHolders
+      .filter((holder) =>
+        holder.holder.toLowerCase().includes(e.target.value.toLowerCase())
+      )
+      .map((holder) => holder.holder);
+  
+    setHighlightedHolders(matched);
   };
   
   const generateEntity = (holder, width, height) => {
@@ -160,11 +174,7 @@ const SoldierField = () => {
       .style("background-size", "100px 100px, 100px 100px, cover, cover, cover")
       .style("animation", "battlefield 10s infinite linear");
 
-      const filteredHolders = allHolders.filter((holder) =>
-        holder.holder.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      
-      battlefieldData.current = filteredHolders.map((holder) =>
+      battlefieldData.current = allHolders.map((holder) =>
         generateEntity(holder, width, height)
       );
     const generalTateEntity = battlefieldData.current.find((d) => d.type === "general-tate");
@@ -174,14 +184,78 @@ const SoldierField = () => {
     }
     svg.selectAll("*").remove();
 
+    svg.append("defs")
+    .append("style")
+    .text(`
+      .highlighted {
+        animation: pulse 1s infinite alternate;
+        filter: url(#glow); /* Apply glow effect */
+      }
+      @keyframes pulse {
+        from {
+          stroke-width: 2;
+          stroke: rgba(255, 255, 255, 0.7);
+        }
+        to {
+          stroke-width: 6;
+          stroke: rgba(255, 255, 255, 1);
+        }
+      }
+    `);
+  
+  // Add a filter for the glow effect
+  svg.append("defs")
+    .append("filter")
+    .attr("id", "glow")
+    .html(`
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    `);
+
     const entities = svg
-      .selectAll(".entity")
-      .data(battlefieldData.current)
-      .join("g")
-      .attr("class", "entity")
-      .attr("transform", (d) => `translate(${d.x}, ${d.y})`)
-      .on("mouseover", (event, d) => setHoveredEntity(d))
-      .on("mouseout", () => setHoveredEntity(null));
+    .selectAll(".entity")
+    .data(battlefieldData.current)
+    .join("g")
+    .attr("class", "entity")
+    .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+  
+  entities
+    .append("circle")
+    .attr("cx", 0)
+    .attr("cy", 0)
+    .attr("r", 20)
+    .attr("fill", (d) => d.traits.color)
+    .attr("class", (d) =>
+      highlightedHolders.includes(d.holder) ? "highlighted" : ""
+    )
+    .attr("stroke", "black");
+  
+    entities.on("mouseover", function (event, d) {
+      setHoveredEntity(d);
+    
+      // Add scaling effect
+      d3.select(this)
+        .select("circle")
+        .transition()
+        .duration(200) // Smooth transition
+        .attr("r", 25); // Increase radius
+    });
+    
+    entities.on("mouseout", function () {
+      setHoveredEntity(null);
+    
+      // Reset size
+      d3.select(this)
+        .select("circle")
+        .transition()
+        .duration(200)
+        .attr("r", 20); // Reset to original size
+    });
+    
+
 
     const generalTate = entities.filter((d) => d.type === "general-tate");
     generalTate
@@ -302,22 +376,81 @@ const SoldierField = () => {
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
-        <input
+
+<div style={{ display: "flex", alignItems: "flex-start", height: "100%" }}>
+  <div style={{ flex: "1", marginRight: "20px", height: "100%" }}>
+    <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
+  </div>
+  <div
+    style={{
+      width: "250px", // Ensure the search bar fits properly
+      padding: "15px",
+      borderRadius: "8px",
+      border: "1px solid #ccc",
+      backgroundColor: "#f8f8f8",
+      alignSelf: "flex-start", // Align search bar to the top
+      display: "flex",
+      flexDirection: "column",
+      gap: "15px", // Add spacing between elements
+    }}
+  >
+    <div>
+    <input
   type="text"
   value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
+  onChange={handleSearch}
   placeholder="Search by address"
   style={{
-    position: "absolute",
-    top: "10px",
-    left: "10px",
+    width: "100%",
     padding: "8px",
     borderRadius: "5px",
-    border: "1px solid #ccc",
-    zIndex: 1000,
+    backgroundColor: "#2e2618", // Match the background color
+    color: "white", // Set text color to white
+    border: "1px solid #444",
+    marginBottom: "10px",
   }}
 />
-      <svg ref={svgRef} />
+<ul
+  style={{
+    listStyle: "none",
+    margin: "0",
+    padding: "0",
+    maxHeight: "150px",
+    overflowY: "auto",
+    backgroundColor: "#2e2618", // Ensure consistent background
+    border: "1px solid #444",
+    borderRadius: "5px",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+  }}
+>
+        {allHolders
+          .filter((holder) =>
+            holder.holder.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+          .map((holder) => (
+            <li
+              key={holder.holder}
+              onClick={() => {
+                setSearchQuery(holder.holder);
+                setHighlightedHolders([holder.holder]);
+              }}
+              style={{
+                padding: "8px",
+                cursor: "pointer",
+                backgroundColor: highlightedHolders.includes(holder.holder)
+                  ? "#444" // Dark highlight
+                  : "transparent",
+                color: "white", // Ensure text is always white
+              }}
+            >
+              {holder.holder}
+            </li>
+          ))}
+      </ul>
+    </div>
+  </div>
+
+</div>
       {hoveredEntity && (
         <div
           style={{
