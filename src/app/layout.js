@@ -13,8 +13,8 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "Tate's Army",
-  description: "$TA is Tate's Army and shows a visualization of tanks and soldiers based on holder amount and wallet address.",
+  title: "TrencherSol",
+  description: "$TS shows a visualization of tanks and soldiers based on holder amount and wallet address.",
   icons: {
     icon: '/tate.png', // Path relative to 'public' directory
   },

@@ -10,7 +10,7 @@ export default function Home() {
     <div className="container">
       {/* Header Section */}
       <div className="header-container">
-        <h1 className="title">Tate's Army $TA</h1>
+        <h1 className="title">TrencherSol</h1>
         <div>
           <button
             className="button"
