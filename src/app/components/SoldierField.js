@@ -9,6 +9,7 @@ const SoldierField = () => {
   const svgRef = useRef();
   const [allHolders, setAllHolders] = useState([]);
   const [hoveredEntity, setHoveredEntity] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const battlefieldData = useRef([]);
   const retryInterval = useRef(null);
 
@@ -82,18 +83,6 @@ const SoldierField = () => {
     const { x, y } = hashStringToPosition(holder.holder, width - 100, height - 100); // Use hashed positions
   
     // Handle General Tate explicitly
-    if (holder.holder === "HVajxfNTWqLGxsfJA9DFThnvddveKfJLK8re1kNpeCVv") {
-      return {
-        ...holder,
-        type: "general-tate", // Unique type for General Tate
-        traits: {
-          color: determineColorByAddress(holder.holder),
-          rank: "general-tate", // Explicit rank
-        },
-        x: width / 2,
-        y: height / 2,
-      };
-    }
   
     // Handle other ranks
     return {
@@ -171,7 +160,13 @@ const SoldierField = () => {
       .style("background-size", "100px 100px, 100px 100px, cover, cover, cover")
       .style("animation", "battlefield 10s infinite linear");
 
-    battlefieldData.current = allHolders.map((holder) => generateEntity(holder, width, height));
+      const filteredHolders = allHolders.filter((holder) =>
+        holder.holder.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      
+      battlefieldData.current = filteredHolders.map((holder) =>
+        generateEntity(holder, width, height)
+      );
     const generalTateEntity = battlefieldData.current.find((d) => d.type === "general-tate");
     if (generalTateEntity) {
       generalTateEntity.x = width / 2;
@@ -307,6 +302,21 @@ const SoldierField = () => {
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
+        <input
+  type="text"
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  placeholder="Search by address"
+  style={{
+    position: "absolute",
+    top: "10px",
+    left: "10px",
+    padding: "8px",
+    borderRadius: "5px",
+    border: "1px solid #ccc",
+    zIndex: 1000,
+  }}
+/>
       <svg ref={svgRef} />
       {hoveredEntity && (
         <div
