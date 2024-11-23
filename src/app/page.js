@@ -10,11 +10,11 @@ export default function Home() {
     <div className="container">
       {/* Header Section */}
       <div className="header-container">
-        <h1 className="title">TrencherSol</h1>
+        <h1 className="title">$TRNCH Visualization</h1>
         <div>
           <button
             className="button"
-            onClick={() => window.open("https://x.com/TateTrenchArmy", "_blank")}
+            onClick={() => window.open("https://x.com/TrenchesSol", "_blank")}
           >
             [Twitter]
           </button>

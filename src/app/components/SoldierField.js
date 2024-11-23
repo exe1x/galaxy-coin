@@ -80,24 +80,25 @@ const SoldierField = () => {
   };
 
   const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-  
-    // Highlight multiple entities
-    const matched = allHolders
-      .filter((holder) =>
-        holder.holder.toLowerCase().includes(e.target.value.toLowerCase())
-      )
-      .map((holder) => holder.holder);
-  
-    setHighlightedHolders(matched);
+    setSearchQuery(e.target.value); // Update the search query
   };
-  
+
+  const handleHolderClick = (holderAddress) => {
+    // Toggle the highlight for the clicked holder
+    if (highlightedHolders.includes(holderAddress)) {
+      setHighlightedHolders([]); // Deselect if already highlighted
+    } else {
+      setHighlightedHolders([holderAddress]); // Highlight only the clicked holder
+    }
+  };
+
+
   const generateEntity = (holder, width, height) => {
     const rank = calculateRank(holder.amount);
     const { x, y } = hashStringToPosition(holder.holder, width - 100, height - 100); // Use hashed positions
-  
+
     // Handle General Tate explicitly
-  
+
     // Handle other ranks
     return {
       ...holder,
@@ -111,7 +112,7 @@ const SoldierField = () => {
       y, // Deterministic y position
     };
   };
-  
+
 
   const connectWebSocket = () => {
     const ws = new WebSocket(WS_URL);
@@ -174,19 +175,18 @@ const SoldierField = () => {
       .style("background-size", "100px 100px, 100px 100px, cover, cover, cover")
       .style("animation", "battlefield 10s infinite linear");
 
-      battlefieldData.current = allHolders.map((holder) =>
-        generateEntity(holder, width, height)
-      );
+    battlefieldData.current = allHolders.map((holder) =>
+      generateEntity(holder, width, height)
+    );
     const generalTateEntity = battlefieldData.current.find((d) => d.type === "general-tate");
     if (generalTateEntity) {
       generalTateEntity.x = width / 2;
       generalTateEntity.y = height / 2;
     }
     svg.selectAll("*").remove();
-
     svg.append("defs")
-    .append("style")
-    .text(`
+      .append("style")
+      .text(`
       .highlighted {
         animation: pulse 1s infinite alternate;
         filter: url(#glow); /* Apply glow effect */
@@ -202,12 +202,12 @@ const SoldierField = () => {
         }
       }
     `);
-  
-  // Add a filter for the glow effect
-  svg.append("defs")
-    .append("filter")
-    .attr("id", "glow")
-    .html(`
+
+    // Add a filter for the glow effect
+    svg.append("defs")
+      .append("filter")
+      .attr("id", "glow")
+      .html(`
       <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
       <feMerge>
         <feMergeNode in="coloredBlur"/>
@@ -216,26 +216,26 @@ const SoldierField = () => {
     `);
 
     const entities = svg
-    .selectAll(".entity")
-    .data(battlefieldData.current)
-    .join("g")
-    .attr("class", "entity")
-    .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
-  
-  entities
-    .append("circle")
-    .attr("cx", 0)
-    .attr("cy", 0)
-    .attr("r", 20)
-    .attr("fill", (d) => d.traits.color)
-    .attr("class", (d) =>
-      highlightedHolders.includes(d.holder) ? "highlighted" : ""
-    )
-    .attr("stroke", "black");
-  
+      .selectAll(".entity")
+      .data(battlefieldData.current)
+      .join("g")
+      .attr("class", "entity")
+      .attr("transform", (d) => `translate(${d.x}, ${d.y})`);
+
+    entities
+      .append("circle")
+      .attr("cx", 0)
+      .attr("cy", 0)
+      .attr("r", 20)
+      .attr("fill", (d) => d.traits.color)
+      .attr("class", (d) =>
+        highlightedHolders.includes(d.holder) ? "highlighted" : ""
+      )
+      .attr("stroke", "black");
+
     entities.on("mouseover", function (event, d) {
       setHoveredEntity(d);
-    
+
       // Add scaling effect
       d3.select(this)
         .select("circle")
@@ -243,10 +243,10 @@ const SoldierField = () => {
         .duration(200) // Smooth transition
         .attr("r", 25); // Increase radius
     });
-    
+
     entities.on("mouseout", function () {
       setHoveredEntity(null);
-    
+
       // Reset size
       d3.select(this)
         .select("circle")
@@ -254,7 +254,7 @@ const SoldierField = () => {
         .duration(200)
         .attr("r", 20); // Reset to original size
     });
-    
+
 
 
     const generalTate = entities.filter((d) => d.type === "general-tate");
@@ -375,107 +375,114 @@ const SoldierField = () => {
   }, [allHolders]);
 
   return (
-    <div style={{ position: "relative", height: "100vh" }}>
+    <div style={{ display: "flex", height: "100vh", background: "#2e2618" }}>
+      {/* Battlefield (SVG Grid) */}
+      <div style={{ flex: "4", position: "relative" }}>
+        <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
+        {hoveredEntity && (
+          <div
+            style={{
+              position: "absolute",
+              left: hoveredEntity.x + 10,
+              top: hoveredEntity.y - 20,
+              padding: "10px",
+              background: "rgba(50, 50, 50, 0.9)",
+              color: "white",
+              borderRadius: "8px",
+              fontSize: "12px",
+              pointerEvents: "none",
+              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div>
+              <strong>Address:</strong> {hoveredEntity.holder}
+            </div>
+            <div>
+              <strong>Amount:</strong> {hoveredEntity.amount}
+            </div>
+            <div>
+              <strong>Type:</strong> {hoveredEntity.traits.rank}
+            </div>
+          </div>
+        )}
+      </div>
 
-<div style={{ display: "flex", alignItems: "flex-start", height: "100%" }}>
-  <div style={{ flex: "1", marginRight: "20px", height: "100%" }}>
-    <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
-  </div>
-  <div
-    style={{
-      width: "250px", // Ensure the search bar fits properly
-      padding: "15px",
-      borderRadius: "8px",
-      border: "1px solid #ccc",
-      backgroundColor: "#f8f8f8",
-      alignSelf: "flex-start", // Align search bar to the top
-      display: "flex",
-      flexDirection: "column",
-      gap: "15px", // Add spacing between elements
-    }}
-  >
-    <div>
-    <input
-  type="text"
-  value={searchQuery}
-  onChange={handleSearch}
-  placeholder="Search by address"
-  style={{
-    width: "100%",
-    padding: "8px",
-    borderRadius: "5px",
-    backgroundColor: "#2e2618", // Match the background color
-    color: "white", // Set text color to white
-    border: "1px solid #444",
-    marginBottom: "10px",
-  }}
-/>
-<ul
-  style={{
-    listStyle: "none",
-    margin: "0",
-    padding: "0",
-    maxHeight: "150px",
-    overflowY: "auto",
-    backgroundColor: "#2e2618", // Ensure consistent background
-    border: "1px solid #444",
-    borderRadius: "5px",
-    boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-  }}
->
-        {allHolders
-          .filter((holder) =>
-            holder.holder.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-          .map((holder) => (
-            <li
-              key={holder.holder}
-              onClick={() => {
-                setSearchQuery(holder.holder);
-                setHighlightedHolders([holder.holder]);
-              }}
-              style={{
-                padding: "8px",
-                cursor: "pointer",
-                backgroundColor: highlightedHolders.includes(holder.holder)
-                  ? "#444" // Dark highlight
-                  : "transparent",
-                color: "white", // Ensure text is always white
-              }}
-            >
-              {holder.holder}
-            </li>
-          ))}
-      </ul>
-    </div>
-  </div>
-
-</div>
-      {hoveredEntity && (
-        <div
+      {/* Search Bar Sidebar */}
+      <div
+        style={{
+          flex: "1",
+          background: "#1f1a13",
+          color: "#fff",
+          padding: "20px",
+          borderLeft: "1px solid #3b2f1e",
+          boxShadow: "-3px 0 10px rgba(0, 0, 0, 0.3)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px",
+        }}
+      >
+        {/* Search Input */}
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={handleSearch}
+          placeholder="Search by address..."
           style={{
-            position: "absolute",
-            left: hoveredEntity.x + 10,
-            top: hoveredEntity.y - 20,
-            padding: "5px",
-            background: "rgba(0, 0, 0, 0.8)",
-            color: "white",
-            borderRadius: "5px",
-            fontSize: "12px",
-            pointerEvents: "none",
+            width: "100%",
+            padding: "12px",
+            borderRadius: "8px",
+            border: "1px solid #444",
+            background: "#2e2618",
+            color: "#fff",
+            outline: "none",
+            fontSize: "14px",
+          }}
+        />
+
+        {/* Filtered List */}
+        <ul
+          style={{
+            listStyle: "none",
+            margin: "0",
+            padding: "0",
+            maxHeight: "calc(100vh - 120px)",
+            overflowY: "auto",
+            background: "#2e2618",
+            border: "1px solid #3b2f1e",
+            borderRadius: "8px",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+            scrollbarWidth: "none", // For Firefox
           }}
         >
-          <div>
-            <strong>Address:</strong> {hoveredEntity.holder}
-          </div>
-          <div>
-            <strong>Amount:</strong> {hoveredEntity.amount}
-          </div>
-          <div>
-            <strong>Type:</strong> {hoveredEntity.traits.rank}
-          </div>
-        </div>
-      )}
+          {allHolders
+            .filter((holder) =>
+              holder.holder.toLowerCase().startsWith(searchQuery.toLowerCase())
+            )
+            .map((holder) => (
+              <li
+                key={holder.holder}
+                onClick={() => handleHolderClick(holder.holder)} // Highlight on click
+                style={{
+                  padding: "12px",
+                  cursor: "pointer",
+                  backgroundColor: highlightedHolders.includes(holder.holder)
+                    ? "#444" // Highlight color
+                    : "transparent",
+                  color: "#fff",
+                  borderBottom: "1px solid #3b2f1e",
+                }}
+              >
+                <div style={{ fontSize: "14px", fontWeight: "bold" }}>
+                  {holder.holder}
+                </div>
+                <div style={{ fontSize: "12px", color: "#aaa" }}>
+                  Amount: {holder.amount}
+                </div>
+              </li>
+            ))}
+        </ul>
+
+      </div>
     </div>
   );
 };
