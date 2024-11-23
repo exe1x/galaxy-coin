@@ -14,7 +14,7 @@ const geistMono = localFont({
 
 export const metadata = {
   title: "TrencherSol",
-  description: "$TS shows a visualization of tanks and soldiers based on holder amount and wallet address.",
+  description: "$TRNCH shows a visualization of tanks and soldiers based on holder amount and wallet address.",
   icons: {
     icon: '/tate.png', // Path relative to 'public' directory
   },
